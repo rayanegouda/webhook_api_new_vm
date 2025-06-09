@@ -8,7 +8,13 @@ app = Flask(__name__)
 
 def get_secret_value(secret_id: str):
 	region = os.environ.get("AWS_REGION")
-	client = boto3.client("secretsmanager", region_name=region)
+	client = boto3.client(
+		"secretsmanager",
+		config=aws_config,
+		region_name=os.environ.get("REGION_NAME"),
+		aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+		aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+	)
 	response = client.get_secret_value(SecretId=secret_id)
 	return json.loads(response["SecretString"])
 
