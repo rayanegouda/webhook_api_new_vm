@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import boto3, os, time
+from botocore.config import Config
 import json
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
