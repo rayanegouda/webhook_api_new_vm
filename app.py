@@ -1,27 +1,32 @@
 from flask import Flask, request, jsonify
-import boto3
+import boto3, os, time
 import json
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
 app = Flask(__name__)
 
-def get_secret_value(secret_id: str, key: str = None, region_name: str = "eu-west-1"):
-    client = boto3.client("secretsmanager", region_name=region_name)
+def get_secret_value(secret_id: str):
+    client = boto3.client("secretsmanager")
     response = client.get_secret_value(SecretId=secret_id)
-    secret = json.loads(response["SecretString"])
-    return secret if key is None else secret.get(key)
+    return json.loads(response["SecretString"])
 
-def get_db_credentials(secret_id="guacamole-db-config", region="eu-west-1"):
-    config = get_secret_value(secret_id, region_name=region)
-    real_secret_id = config["active_secret"]
-    db_creds = get_secret_value(real_secret_id, region_name=region)
+def get_db_credentials(region="eu-west-1"):
+    # Changer ici les IDs exacts de secrets pour chaque champ
+    secret_ids = {
+        "host": "rds-db-credentials/cluster-3MGGV2VUZDWQSJFDD6TQ4744HQ/admin/1748251685700",
+        "port": "rds-db-port-secret-id",  # optionnel, ou hardcodé 3306
+        "username": "rds!cluster-27e3f900-f4c4-44bc-a1e0-19cc44356684",
+        "password": "rds!cluster-27e3f900-f4c4-44bc-a1e0-19cc44356684",
+        "dbname": "rds-db-name-secret-id"
+    }
+
     return {
-        "host": db_creds["host"],
-        "port": db_creds.get("port", 3306),
-        "user": db_creds["username"],
-        "password": db_creds["password"],
-        "dbname": db_creds.get("dbname", "guacamole_db")
+        "host": get_secret_value(secret_ids["host"])["host"],
+        "port": int(3306),
+        "user": get_secret_value(secret_ids["username"])["username"],
+        "password": get_secret_value(secret_ids["password"])["password"],
+        "dbname": "guacamole_db"
     }
 
 def create_db_engine():
@@ -37,7 +42,9 @@ def create_connection():
 
     if not ip or not private_key:
         return jsonify({"error": "Missing IP or private_key"}), 400
-
+	region_name = os.environ.get("REGION_NAME")
+	aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID")
+	aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
     engine = create_db_engine()
     conn_name = f"SSH - {ip}"
     try:
