@@ -15,9 +15,9 @@ aws_config = Config(
 
 
 def get_secret_value(secret_id: str):
-    region_name = os.environ.get("AWS_REGION")
+    region_name = os.environ.get("AWS_REGION_NAME")
     if not region_name:
-        raise RuntimeError("Missing AWS_REGION environment variable")
+        raise RuntimeError("Missing AWS_REGION_NAME environment variable")
 
     client = boto3.client(
         "secretsmanager",
