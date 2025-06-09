@@ -42,9 +42,9 @@ def create_connection():
 
     if not ip or not private_key:
         return jsonify({"error": "Missing IP or private_key"}), 400
-	region_name = os.environ.get("REGION_NAME")
-	aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID")
-	aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
+	#region_name = os.environ.get("REGION_NAME")
+	#aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID")
+	#aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
     engine = create_db_engine()
     conn_name = f"SSH - {ip}"
     try:
