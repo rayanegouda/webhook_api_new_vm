@@ -5,6 +5,10 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
 app = Flask(__name__)
+aws_config = Config(
+    max_pool_connections=100,  # Augmente le pool de connexions
+    retries={'max_attempts': 3}
+)
 
 def get_secret_value(secret_id: str):
 	region = os.environ.get("AWS_REGION")
