@@ -12,7 +12,7 @@ def get_secret_value(secret_id: str):
 	response = client.get_secret_value(SecretId=secret_id)
 	return json.loads(response["SecretString"])
 
-def get_db_credentials(region="eu-west-1"):
+def get_db_credentials(region="eu-north-1"):
     # Changer ici les IDs exacts de secrets pour chaque champ
     secret_ids = {
         "host": "rds-db-credentials/cluster-3MGGV2VUZDWQSJFDD6TQ4744HQ/admin/1748251685700",
