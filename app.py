@@ -57,26 +57,27 @@ def create_connection():
     data = request.json
     ip = data.get("ip")
     private_key = data.get("private_key")
+    protocol = data.get("connection_protocol", "ssh")  # Défaut = ssh
 
     if not ip or not private_key:
         return jsonify({"error": "Missing IP or private_key"}), 400
 
     try:
         engine = create_db_engine()
-        conn_name = f"SSH - {ip}"
+        conn_name = f"{protocol.upper()} - {ip}"
 
         with engine.begin() as conn:
             conn.execute(text("""
                 INSERT INTO guacamole_connection (connection_name, protocol, parent_id)
-                VALUES (:name, 'ssh', NULL)
-            """), {"name": conn_name})
+                VALUES (:name, :protocol, NULL)
+            """), {"name": conn_name, "protocol": protocol})
 
             result = conn.execute(text("SELECT LAST_INSERT_ID() AS id")).mappings()
             connection_id = result.fetchone()["id"]
 
             parameters = [
                 ("hostname", ip),
-                ("port", "22"),
+                ("port", "22" if protocol == "ssh" else "3389"),
                 ("username", "ubuntu"),
                 ("private-key", private_key)
             ]
@@ -90,12 +91,12 @@ def create_connection():
 
         return jsonify({
             "connection_id": connection_id,
+            "connection_protocol": protocol,
             "connection_name": conn_name
         }), 201
 
     except SQLAlchemyError as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True)
