@@ -55,24 +55,13 @@ def create_db_engine():
 @app.route('/create-connection', methods=['POST'])
 def create_connection():
     data = request.json
+    ip = data.get("ip")
+    private_key = data.get("private_key")
     protocol = data.get("connection_protocol", "ssh")
     conn_name = data.get("connection_name")
 
-    if not conn_name:
-        return jsonify({"error": "Missing connection_name"}), 400
-
-    # Extraire l'IP depuis le nom (par ex : "SSH - 12.34.56.78")
-    try:
-        ip = conn_name.split("-")[-1].strip()
-    except Exception:
-        return jsonify({"error": "Invalid connection_name format"}), 400
-
-    # Charger la clé privée depuis un secret statique
-    try:
-        private_key_secret_id = "ssh-default-private-key"
-        private_key = get_secret_value(private_key_secret_id)["private_key"]
-    except Exception as e:
-        return jsonify({"error": f"Unable to load private key: {str(e)}"}), 500
+    if not ip or not private_key or not conn_name:
+        return jsonify({"error": "Missing ip, private_key or connection_name"}), 400
 
     try:
         engine = create_db_engine()
