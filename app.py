@@ -7,9 +7,10 @@ from sqlalchemy.exc import SQLAlchemyError
 app = Flask(__name__)
 
 def get_secret_value(secret_id: str):
-    client = boto3.client("secretsmanager")
-    response = client.get_secret_value(SecretId=secret_id)
-    return json.loads(response["SecretString"])
+	region = os.environ.get("AWS_REGION")
+	client = boto3.client("secretsmanager", region_name=region)
+	response = client.get_secret_value(SecretId=secret_id)
+	return json.loads(response["SecretString"])
 
 def get_db_credentials(region="eu-west-1"):
     # Changer ici les IDs exacts de secrets pour chaque champ
