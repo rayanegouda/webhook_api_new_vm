@@ -66,40 +66,39 @@ def create_connection():
     try:
         engine = create_db_engine()
 
-		with engine.begin() as conn:
-			conn.execute(text("""
-                INSERT INTO guacamole_connection (connection_name, protocol, parent_id)
-                VALUES (:name, :protocol, NULL)
-            """), {"name": conn_name, "protocol": protocol})
+	with engine.begin() as conn:
+		conn.execute(text("""
+                        INSERT INTO guacamole_connection (connection_name, protocol, parent_id)
+                        VALUES (:name, :protocol, NULL)
+                    """), {"name": conn_name, "protocol": protocol})
 
-			result = conn.execute(text("SELECT LAST_INSERT_ID() AS id")).mappings()
-			connection_id = result.fetchone()["id"]
+		result = conn.execute(text("SELECT LAST_INSERT_ID() AS id")).mappings()
+		connection_id = result.fetchone()["id"]
 
-			parameters = [
+		parameters = [
 				("hostname", ip),
 				("port", "22" if protocol == "ssh" else "3389"),
 				("username", "ubuntu"),
 				("private-key", private_key)
 			]
 
-			for name, value in parameters:
-				conn.execute(text("""
-                    INSERT INTO guacamole_connection_parameter
-                    (connection_id, parameter_name, parameter_value)
-                    VALUES (:cid, :pname, :pvalue)
-                """), {"cid": connection_id, "pname": name, "pvalue": value})
+		for name, value in parameters:
+			conn.execute(text("""
+                            INSERT INTO guacamole_connection_parameter
+                            (connection_id, parameter_name, parameter_value)
+                            VALUES (:cid, :pname, :pvalue)
+                        """), {"cid": connection_id, "pname": name, "pvalue": value})
 
 			# 🔐 Attribution de la permission READ à l'utilisateur guacadmin
 			conn.execute(text("""
-                INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
-                VALUES (
-                    (SELECT entity_id FROM guacamole_entity WHERE name = :username AND type = 'USER'),
-                    :connection_id,
-                    'READ'
-                )
-            """), {"username": "guacadmin", "connection_id": connection_id})
-
-		return jsonify({
+                        INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
+                        VALUES (
+                            (SELECT entity_id FROM guacamole_entity WHERE name = :username AND type = 'USER'),
+                            :connection_id,
+                            'READ'
+                        )
+                    """), {"username": "guacadmin", "connection_id": connection_id})
+        return jsonify({
             "connection_id": connection_id,
             "connection_protocol": protocol,
             "connection_name": conn_name
