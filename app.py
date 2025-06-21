@@ -59,14 +59,26 @@ def create_connection():
     private_key = data.get("private_key")
     protocol = data.get("connection_protocol", "ssh")
     conn_name = data.get("connection_name")
+    username = "guacadmin"
 
     if not ip or not private_key or not conn_name:
         return jsonify({"error": "Missing ip, private_key or connection_name"}), 400
 
     try:
         engine = create_db_engine()
-
         with engine.begin() as conn:
+            # Vérifier que l'utilisateur guacadmin existe
+            entity_result = conn.execute(text("""
+                SELECT entity_id FROM guacamole_entity
+                WHERE name = :username AND type = 'USER'
+            """), {"username": username}).mappings().fetchone()
+
+            if not entity_result:
+                return jsonify({"error": f"User '{username}' not found in guacamole_entity"}), 404
+
+            entity_id = entity_result["entity_id"]
+
+            # Création de la connexion
             conn.execute(text("""
                 INSERT INTO guacamole_connection (connection_name, protocol, parent_id)
                 VALUES (:name, :protocol, NULL)
@@ -74,6 +86,9 @@ def create_connection():
 
             result = conn.execute(text("SELECT LAST_INSERT_ID() AS id")).mappings()
             connection_id = result.fetchone()["id"]
+
+            if not connection_id:
+                return jsonify({"error": "Connection ID not retrieved"}), 500
 
             parameters = [
                 ("hostname", ip),
@@ -89,15 +104,11 @@ def create_connection():
                     VALUES (:cid, :pname, :pvalue)
                 """), {"cid": connection_id, "pname": name, "pvalue": value})
 
-            # 🔐 Attribution de la permission READ à l'utilisateur guacadmin
+            # Permission READ
             conn.execute(text("""
                 INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
-                VALUES (
-                    (SELECT entity_id FROM guacamole_entity WHERE name = :username AND type = 'USER'),
-                    :connection_id,
-                    'READ'
-                )
-            """), {"username": "guacadmin", "connection_id": connection_id})
+                VALUES (:eid, :cid, 'READ')
+            """), {"eid": entity_id, "cid": connection_id})
 
         return jsonify({
             "connection_id": connection_id,
@@ -106,7 +117,10 @@ def create_connection():
         }), 201
 
     except SQLAlchemyError as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"SQL error: {str(e)}"}), 500
+
+    except Exception as e:
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
